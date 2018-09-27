@@ -12,63 +12,27 @@ let lz:LZ = LZ()
 var rawData = ""
 var initFileSize: UInt64 = 0
 var finalFileSize: UInt64 = 0
+let regex = try! NSRegularExpression(pattern: "^.*\\.jzip$")
 
 print("Enter filepath: ")
 let fileName = readLine()
 
-// Start user input loop, break out on successful input or quit
-var loop = 1
-while loop == 1 {
-    if fileName == "exit" || fileName == "" {
-        exit(EXIT_SUCCESS)
-    }
+if (regex.firstMatch(in: fileName!, options: [], range: NSRange(location: 0, length: fileName!.count)) != nil) {
+    print("decompress")
+    //let decompressed = lz.decompress(compressed: compressed)
+    //print(decompressed!)
+} else {
+    print("compress")
+    let fileStats = lz.compress(fileName: fileName!)
     
-    if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-        let fileURL = dir.appendingPathComponent(fileName!)
-        
-        do {
-            rawData = try String(contentsOf: fileURL, encoding: .ascii)
-            
-            let attr = try FileManager.default.attributesOfItem(atPath: fileURL.path)
-            initFileSize = attr[FileAttributeKey.size] as! UInt64
-            
-            print("Compressing file: \(fileName!)")
-            
-            loop = 0
-        } catch {
-            print("Unable to read in data. Terminating file compression...")
-            exit(EXIT_FAILURE)
-        }
-    }
+    print("File compression complete. Output file \(fileStats.outputURL) created")
+    print("Initial file size: \(fileStats.initSize)")
+    print("Compressed file size: \(fileStats.finalSize)")
+    
+    let ratio = 1 / (Float(fileStats.initSize) / Float(fileStats.finalSize))
+    print("Compression ratio: \(ratio)")
 }
 
-// perform the actual compression
-let compressed = lz.compress(rawData: rawData)
 
-var outputURL = fileName!.split(separator: ".")[0] + ".jzip"
-print(outputURL)
 
-if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-    let fileURL = dir.appendingPathComponent(String(outputURL))
 
-    do {
-        print("Fix this")
-        let stringEncoding = compressed.description
-        try stringEncoding.write(to: fileURL, atomically: false, encoding: .ascii)
-        
-        let attr = try FileManager.default.attributesOfItem(atPath: fileURL.path)
-        finalFileSize = attr[FileAttributeKey.size] as! UInt64
-        
-        print("File compression complete. Output file \(outputURL) created")
-        print("Initial file size: \(initFileSize)")
-        print("Compressed file size: \(finalFileSize)")
-        print("Compression ratio: \(finalFileSize / initFileSize)")
-    }
-    catch {
-        print("Unable to output compressed data to file")
-        exit(EXIT_FAILURE)
-    }
-}
-
-//let decompressed = lz.decompress(compressed: compressed)
-//print(decompressed!)

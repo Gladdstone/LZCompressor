@@ -10,7 +10,24 @@ import Foundation
 
 class LZ {
     
-    func compress(rawData: String) -> [Int] {
+    func compress(fileName: String) -> (outputURL: String, initSize: UInt64, finalSize: UInt64) {
+        var rawData = ""
+        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let fileURL = dir.appendingPathComponent(fileName)
+            
+            do {
+                rawData = try String(contentsOf: fileURL, encoding: .ascii)
+                
+                let attr = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+                initFileSize = attr[FileAttributeKey.size] as! UInt64
+                
+                print("Compressing file: \(fileName)")
+            } catch {
+                print("Unable to read in data. Terminating file compression...")
+                exit(EXIT_FAILURE)
+            }
+        }
+        
         var refDic = [String: Int]()
         var refCnt = 256;
         
@@ -38,7 +55,28 @@ class LZ {
             compressed.append(refDic[matchWindow]!)
         }
         
-        return compressed
+        let outputURL = fileName.split(separator: ".")[0] + ".jzip"
+        print(outputURL)
+        
+        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let fileURL = dir.appendingPathComponent(String(outputURL))
+            
+            do {
+                let stringEncoding = compressed.description
+                try stringEncoding.write(to: fileURL, atomically: false, encoding: .ascii)
+                
+                let attr = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+                finalFileSize = attr[FileAttributeKey.size] as! UInt64
+                
+                return (String(outputURL), initFileSize, finalFileSize)
+            }
+            catch {
+                print("Unable to output compressed data to file")
+                exit(EXIT_FAILURE)
+            }
+        }
+        
+        return ("", 0, 0)
     }
     
     func decompress(compressed: [Int]) -> String? {
